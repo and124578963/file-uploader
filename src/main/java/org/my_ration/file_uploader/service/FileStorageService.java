@@ -37,9 +37,6 @@ public class FileStorageService {
     @Value("${allowed.file.maxFileSizeBytes}")
     private float maxFileSizeBytes;
 
-    @Value("${allowed.file.outputFormat}")
-    private String outputFormat;
-
 
     public String storeFile(MultipartFile file, String category) throws IOException {
         // Валидация типа файла

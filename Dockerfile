@@ -22,4 +22,4 @@ USER appuser
 
 COPY --from=build --chown=appuser:appuser /app/target/*.jar app.jar
 
-ENTRYPOINT ["java", "-XX:+UseZGC", "-Xmx128m", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseZGC", "-Xmx256m", "-jar", "app.jar"]
