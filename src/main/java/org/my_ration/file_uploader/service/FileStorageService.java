@@ -1,6 +1,8 @@
 package org.my_ration.file_uploader.service;
 
 
+import org.my_ration.file_uploader.entities.CustomPhoto;
+import org.my_ration.file_uploader.user.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +39,14 @@ public class FileStorageService {
     @Value("${allowed.file.maxFileSizeBytes}")
     private float maxFileSizeBytes;
 
+    @Value("${allowed.user.maxUserStorageSize}")
+    private long maxUserStorageSize;
+
+    private final UserService userService;
+
+    public FileStorageService(UserService userService) {
+        this.userService = userService;
+    }
 
     public String storeFile(MultipartFile file, String category) throws IOException {
         // Валидация типа файла
@@ -46,18 +56,71 @@ public class FileStorageService {
 
         // Создание директории для категории
         Path uploadPath = Paths.get(rootDirectory, category);
-        if (!Files.exists(uploadPath)) {
+        System.out.println("File name: "+ uploadPath.getFileName());
+
+        /*//Эта не рабочая проверка она проверяет есть ли уже существующие файлы в хранилище
+        if (!Files.exists(file)) {
             throw new IllegalArgumentException("File does not exist");
         }
+         */
 
+        System.out.println("Start sanitizeFileName");
         String originalFilename = sanitizeFileName(file.getOriginalFilename());
         String fileName = UUID.randomUUID() + "_" + originalFilename;
         Path filePath = uploadPath.resolve(fileName);
 
-        Files.copy(compressImage(file), filePath);
+        // Создать все отсутствующие директории в пути
+        Files.createDirectories(filePath.getParent());
+
+        System.out.println("Start compress");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (InputStream is = compressImage(file)) {
+            is.transferTo(baos);
+        }
+        byte[] compressedData = baos.toByteArray();
+        long fileSize = compressedData.length;
+
+        //long fileSize = compressedFile.available();
+        System.out.println("FileSize: " +fileSize);
+
+        System.out.println("Start get user");
+        userService.getUserInfo();
+        Long userStorageSize = userService.getUserStorage();
+        System.out.println("CurrentUserStorageSize: " + userStorageSize);
+
+        User user= userService.getUser();
+
+        if(userStorageSize<maxUserStorageSize-fileSize||user.getIsSystemRole()) {
+            try (InputStream is = new ByteArrayInputStream(compressedData)) {
+                System.out.println("SaveFile");
+                Files.copy(is, filePath);
+
+                CustomPhoto photo = new CustomPhoto();
+                photo.setUserUIID(user.getUserUIID());
+                photo.setPath(filePath.toString());
+                photo.setSize(fileSize);
+
+                user.getUserName();
+
+                CustomPhoto savedPhoto = userService.saveUserPhoto(photo);
+            }
+        }else{
+            throw new NoAvailableStorageForUser("No available storage for user. Please delete old files.");
+        }
+
 
         return filePath.toString(); // Возвращаем относительный путь
     }
+
+    class NoAvailableStorageForUser extends IOException{
+        NoAvailableStorageForUser() {
+        }
+        NoAvailableStorageForUser(String msg) {
+            super(msg);
+        }
+    }
+
     // В FileStorageService
     private String sanitizeFileName(String name) {
         return name.replace("..", "")
@@ -120,12 +183,14 @@ public class FileStorageService {
                 System.out.println(e);
             }
 
-
+            System.out.println("file size: " + outputStream.size());
             if (outputStream.size() <= maxFileSizeBytes) {
                 return new ByteArrayInputStream(outputStream.toByteArray());
             }
 
             quality -= 0.1;
+            targetHeight-=100;
+            targetWidth-=100;
 
             if (quality < 0.1) {
                 throw new IOException("Couldn't compress the file ");

@@ -24,6 +24,7 @@ public class FileUploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("category") String category) throws IOException {
 
+        System.out.println("Start fileStorageService:" + file.getOriginalFilename() +" " + file.getSize());
         String fileName = fileStorageService.storeFile(file, category);
 
 
