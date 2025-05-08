@@ -1,6 +1,7 @@
 package org.my_ration.file_uploader.service;
 
 
+import lombok.RequiredArgsConstructor;
 import org.my_ration.file_uploader.entities.CustomPhoto;
 import org.my_ration.file_uploader.user.User;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,8 @@ public class FileStorageService {
 
     private final UserService userService;
 
+
+    //TODO: замени на аннатацию @RequiredArgsConstructor
     public FileStorageService(UserService userService) {
         this.userService = userService;
     }
@@ -85,7 +88,9 @@ public class FileStorageService {
         System.out.println("FileSize: " +fileSize);
 
         System.out.println("Start get user");
+        //todo: User user = userService.getUserInfo()
         userService.getUserInfo();
+        // todo: FileStorageService является фасадом для других сервисов. А сервис пользователей не должен отвечать за фото. Используй здесь напрямую метод из dbService.getCurrentUserStorageSize
         Long userStorageSize = userService.getUserStorage();
         System.out.println("CurrentUserStorageSize: " + userStorageSize);
 
@@ -102,7 +107,7 @@ public class FileStorageService {
                 photo.setSize(fileSize);
 
                 user.getUserName();
-
+                //TODO: используй напрямую dbService.saveUserPhoto(customPhoto). FileStorageService является фасадом для других сервисов. А сервис пользователей не должен отвечать за фото
                 CustomPhoto savedPhoto = userService.saveUserPhoto(photo);
             }
         }else{
@@ -112,7 +117,7 @@ public class FileStorageService {
 
         return filePath.toString(); // Возвращаем относительный путь
     }
-
+    //todo: создавать свои классы ошибок просто так не надо.
     class NoAvailableStorageForUser extends IOException{
         NoAvailableStorageForUser() {
         }

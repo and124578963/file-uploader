@@ -5,7 +5,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+//TODO: Мне кажется это скорее должно называться просто Photo или UserPhoto. AllArgsConstructor и NoArgsConstructor уже входят в Data
+// Еще бы хранить поле category которая передается в api
 @Entity
 @Table(name = "custom_photos")
 @Data

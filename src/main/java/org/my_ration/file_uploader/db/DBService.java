@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+
+//TODO: db сервисов нет, есть сервисы от названий entity, значит это CustomPhotoService. Нужно переместить в папку сервисов.
 @Service
 @RequiredArgsConstructor // Lombok: инъекция зависимостей через конструктор
 public class DBService {

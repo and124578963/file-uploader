@@ -10,9 +10,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService {
     private final DBService dbService;
+
+    // TODO: сервисы не хранят состояние
     @Getter
     private User user;
 
+    //TODO: @RequiredArgsConstructor
     public UserService(DBService dbService) {
         this.dbService = dbService;
     }

@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+
+//TODO: Repository интерфейсы кладут в папку repository, как сервисы в папку service
 @Repository
 public interface CustomPhotoRepository extends JpaRepository<CustomPhoto, Long> {
 

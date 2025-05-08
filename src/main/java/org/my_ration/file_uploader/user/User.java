@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import java.util.List;
 
 
+//TODO: есть аннотация Data для датаклассов. Можно закинуть в папку service.
 public class User {
 
 
@@ -25,7 +26,7 @@ public class User {
 
     public User(){
     }
-
+//TODO: данный класс - хранит состояние, логики тут быть не должно.Перенеси этот метод в UserService и пусть он возвращает объект User уже с заполненными данными.
     public void authorizeUser(){
         isSystemRole=false;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

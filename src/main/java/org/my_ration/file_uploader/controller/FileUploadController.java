@@ -23,7 +23,7 @@ public class FileUploadController {
     public ResponseEntity<Map<String, String>> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("category") String category) throws IOException {
-
+        //TODO: заменить на log.info()
         System.out.println("Start fileStorageService:" + file.getOriginalFilename() +" " + file.getSize());
         String fileName = fileStorageService.storeFile(file, category);
 
