@@ -1,9 +1,8 @@
 package org.my_ration.file_uploader.service;
 
-
 import lombok.RequiredArgsConstructor;
-import org.my_ration.file_uploader.entities.CustomPhoto;
-import org.my_ration.file_uploader.user.User;
+import lombok.extern.log4j.Log4j2;
+import org.my_ration.file_uploader.entities.Photo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 @Service
+@RequiredArgsConstructor
+@Log4j2
 public class FileStorageService {
 
     @Value("${file.upload.root-directory}")
@@ -44,12 +45,7 @@ public class FileStorageService {
     private long maxUserStorageSize;
 
     private final UserService userService;
-
-
-    //TODO: замени на аннатацию @RequiredArgsConstructor
-    public FileStorageService(UserService userService) {
-        this.userService = userService;
-    }
+    private final PhotoService photoService;
 
     public String storeFile(MultipartFile file, String category) throws IOException {
         // Валидация типа файла
@@ -59,15 +55,9 @@ public class FileStorageService {
 
         // Создание директории для категории
         Path uploadPath = Paths.get(rootDirectory, category);
-        System.out.println("File name: "+ uploadPath.getFileName());
+        log.debug("File name: {}", uploadPath.getFileName());
 
-        /*//Эта не рабочая проверка она проверяет есть ли уже существующие файлы в хранилище
-        if (!Files.exists(file)) {
-            throw new IllegalArgumentException("File does not exist");
-        }
-         */
-
-        System.out.println("Start sanitizeFileName");
+        log.debug("Start sanitizeFileName");
         String originalFilename = sanitizeFileName(file.getOriginalFilename());
         String fileName = UUID.randomUUID() + "_" + originalFilename;
         Path filePath = uploadPath.resolve(fileName);
@@ -75,7 +65,7 @@ public class FileStorageService {
         // Создать все отсутствующие директории в пути
         Files.createDirectories(filePath.getParent());
 
-        System.out.println("Start compress");
+        log.debug("Start compress");
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (InputStream is = compressImage(file)) {
@@ -85,45 +75,34 @@ public class FileStorageService {
         long fileSize = compressedData.length;
 
         //long fileSize = compressedFile.available();
-        System.out.println("FileSize: " +fileSize);
+        log.debug("FileSize: {}", fileSize);
 
-        System.out.println("Start get user");
-        //todo: User user = userService.getUserInfo()
-        userService.getUserInfo();
-        // todo: FileStorageService является фасадом для других сервисов. А сервис пользователей не должен отвечать за фото. Используй здесь напрямую метод из dbService.getCurrentUserStorageSize
-        Long userStorageSize = userService.getUserStorage();
-        System.out.println("CurrentUserStorageSize: " + userStorageSize);
+        log.debug("Start get user");
+        User user = userService.getUser();
 
-        User user= userService.getUser();
+        Long userStorageSize=photoService.getUserCurrentStorageSizeByUIID(user.getUserUIID());
+
+        log.debug("CurrentUserStorageSize: {}", userStorageSize);
 
         if(userStorageSize<maxUserStorageSize-fileSize||user.getIsSystemRole()) {
             try (InputStream is = new ByteArrayInputStream(compressedData)) {
-                System.out.println("SaveFile");
+                log.debug("SavePhoto");
                 Files.copy(is, filePath);
 
-                CustomPhoto photo = new CustomPhoto();
+                Photo photo = new Photo();
                 photo.setUserUIID(user.getUserUIID());
                 photo.setPath(filePath.toString());
                 photo.setSize(fileSize);
+                photo.setCategory(category);
 
-                user.getUserName();
-                //TODO: используй напрямую dbService.saveUserPhoto(customPhoto). FileStorageService является фасадом для других сервисов. А сервис пользователей не должен отвечать за фото
-                CustomPhoto savedPhoto = userService.saveUserPhoto(photo);
+                photoService.saveUserPhoto(photo);
             }
         }else{
-            throw new NoAvailableStorageForUser("No available storage for user. Please delete old files.");
+            throw new IOException("No available storage for user. Please delete old files.");
         }
 
 
         return filePath.toString(); // Возвращаем относительный путь
-    }
-    //todo: создавать свои классы ошибок просто так не надо.
-    class NoAvailableStorageForUser extends IOException{
-        NoAvailableStorageForUser() {
-        }
-        NoAvailableStorageForUser(String msg) {
-            super(msg);
-        }
     }
 
     // В FileStorageService
@@ -172,10 +151,10 @@ public class FileStorageService {
         while (true) {
             outputStream.reset(); // очищаем буфер
 
-            System.out.println("File type " + file.getContentType());
-            System.out.println("File extension " + extension);
-            System.out.println("File targetHeight " + targetHeight);
-            System.out.println("File targetWidth " + targetWidth);
+            log.trace("File type {}", file.getContentType());
+            log.trace("File extension {}", extension);
+            log.trace("File targetHeight {}", targetHeight);
+            log.trace("File targetWidth {}", targetWidth);
 
             try {
                 Thumbnails.of(inputStream)
@@ -185,17 +164,17 @@ public class FileStorageService {
                         .toOutputStream(outputStream);
             }
             catch (Exception e){
-                System.out.println(e);
+                log.error(e);
             }
 
-            System.out.println("file size: " + outputStream.size());
+            log.trace("file size: {}", outputStream.size());
             if (outputStream.size() <= maxFileSizeBytes) {
                 return new ByteArrayInputStream(outputStream.toByteArray());
             }
 
             quality -= 0.1;
-            targetHeight-=100;
-            targetWidth-=100;
+            targetHeight= (int) (targetHeight*0.85);
+            targetWidth= (int) (targetWidth*0.85);
 
             if (quality < 0.1) {
                 throw new IOException("Couldn't compress the file ");

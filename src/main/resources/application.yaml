@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: file-uploader
+  main:
+    banner-mode: off
+  security:
+    oauth2:
+          resourceserver:
+            jwt:
+              jwk-set-uri: ${KEYCLOAK_KEY_URI}
+  servlet:
+    multipart:
+          enabled: true
+          max-file-size: 10MB
+          max-request-size: 10MB
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_DATABASE}
+    username: ${DB_ADMIN}
+    password: ${DB_ADMINPASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+      properties:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+# File storage settings
+file:
+  upload:
+    root-directory: ${ROOT_FILE_PATH}
+
+allowed:
+  file:
+    types: image/png,image/jpeg,image/gif
+    targetWidth: ${FILE_TARGET_WIDTH}
+    targetHeight: ${FILE_TARGET_HEIGHT}
+    maxFileSizeBytes: ${FILE_MAX_SIZE_BYTES}
+  user:
+    maxUserStorageSize: ${MAX_USER_STORAGE_SIZE}
+
+# Keycloak configuration
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL}
+  realm: ${REALM}
+  resource: ${KEYCLOAK_CLIENT_ID}
+  client-key-password: ${KEYCLOAK_CLIENT_SECRET}
+
+logging:
+  level:
+    org.springframework: INFO
+    org.my_ration.file_uploader.: DEBUG
+
