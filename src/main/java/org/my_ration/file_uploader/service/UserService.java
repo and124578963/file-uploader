@@ -35,7 +35,7 @@ public class UserService {
 
         if (authentication != null && authentication.getPrincipal() instanceof Jwt) {
             Jwt jwt = (Jwt) authentication.getPrincipal();
-            log.trace("Токен: {}", jwt.getClaims());
+            //log.trace("Токен: {}", jwt.getClaims());
             // Получаем preferred_username
             user.setUserName(jwt.getClaimAsString("preferred_username"));
 
