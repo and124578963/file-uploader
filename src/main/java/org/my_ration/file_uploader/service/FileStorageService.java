@@ -50,11 +50,17 @@ public class FileStorageService {
     public String storeFile(MultipartFile file, String category) throws IOException {
         // Валидация типа файла
         if (!isValidFileType(file)) {
-            throw new IllegalArgumentException("Invalid file type");
+            throw new IllegalArgumentException("invalid_file_type");
         }
 
         // Создание директории для категории
+        //Path uploadPath = Paths.get(rootDirectory, category);
+        // Решили что деректории должны быть предопределены, а не создоваться пользователем
         Path uploadPath = Paths.get(rootDirectory, category);
+        if (!Files.exists(uploadPath)) {
+            throw new IllegalArgumentException("no_such_path");
+        }
+
         log.debug("File name: {}", uploadPath.getFileName());
 
         log.debug("Start sanitizeFileName");
@@ -98,7 +104,7 @@ public class FileStorageService {
                 photoService.saveUserPhoto(photo);
             }
         }else{
-            throw new IOException("No available storage for user. Please delete old files.");
+            throw new IOException("no_available_storage");
         }
 
 
@@ -118,6 +124,34 @@ public class FileStorageService {
             }
         }
         return false;
+    }
+
+    public Boolean deleteFile(String filePath) throws IOException {
+
+        log.debug("Start getPhotoByPath");
+        Photo photo=photoService.getPhotoByPath(filePath);
+        if(photo==null){
+            throw new IOException("file_not_found");
+        }
+        log.debug("Photo found in DB. Photo ID: {}",photo.getId());
+        log.debug("Start getUser");
+        User user = userService.getUser();
+        Path photoPath = Paths.get(filePath);
+
+        if (!Files.exists(photoPath)) {
+            throw new IOException("no_such_path");
+        }
+
+        if(user.getUserUIID().equals(photo.getUserUIID())){
+            log.debug("Start delete file by photoPath");
+            Files.delete(photoPath);
+            log.debug("Start deletePhotoById");
+            photoService.deletePhotoById(photo.getId());
+        }else {
+            throw new IOException("another_users_photo");
+        }
+
+        return true;
     }
 
 

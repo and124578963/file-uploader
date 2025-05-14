@@ -8,18 +8,14 @@ public class User {
 
 
     private String userUIID;
-    private boolean isAdmin;
+    private boolean isAdmin=false;
     private String userName;
 
-    private boolean isSystemRole;
-
-    public User(){
-        this.isSystemRole=false;
-        this.isAdmin=false;
-    }
-
+    private boolean isSystemRole=false;
 
     public boolean getIsSystemRole() {
         return isSystemRole;
     }
+
+
 }

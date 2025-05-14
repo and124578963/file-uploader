@@ -20,7 +20,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IOException.class)
     public ResponseEntity<String> handleIOException(IOException ex) {
         log.error(ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error processing file: " + ex.getMessage());
+        log.debug("Error Message: {}",ex.getMessage());
+        if (ex.getMessage().equals("file_not_found")){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                    .body("Error processing file: " + ex.getMessage());
+        } else if(ex.getMessage().equals("no_available_storage")){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Error processing file: " + ex.getMessage());
+        }else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing file: " + ex.getMessage());
+        }
     }
 }

@@ -37,4 +37,14 @@ public class PhotoService {
         }
         return storageSize;
     }
+
+    @Transactional
+    public void deletePhotoByPathDirect(String path) {
+        photoRepository.deleteByPath(path);
+    }
+
+    @Transactional
+    public void deletePhotoById(Long id) {
+        photoRepository.deleteById(id);
+    }
 }

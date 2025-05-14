@@ -23,4 +23,8 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
     //Найти текущий объем файлов пользователя
     @Query("SELECT sum(size) FROM Photo p WHERE p.userUIID = :userUIID")
     Long getUserCurrentStorageSizeByUIID(@Param("userUIID") String user);
+
+    void deleteByPath(String path);
+
+    void deleteById(Long id);
 }
