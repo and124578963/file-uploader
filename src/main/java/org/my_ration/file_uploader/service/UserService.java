@@ -25,28 +25,33 @@ public class UserService {
         }
     }
 
-    public User getUser(){
-        User user=new User();
+    public User getUser() {
+        User user = new User();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            // Обработка случая, когда аутентификация отсутствует
+            return user;
+        }
+
         user.setUserUIID(authentication.getName());
+
+        user.setSystemRole(authentication.getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_system")));
+
         user.setAdmin(authentication.getAuthorities()
                 .stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
 
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt) {
+        if (authentication.getPrincipal() instanceof Jwt) {
             Jwt jwt = (Jwt) authentication.getPrincipal();
-            //log.trace("Токен: {}", jwt.getClaims());
-            // Получаем preferred_username
             user.setUserName(jwt.getClaimAsString("preferred_username"));
+            log.debug("Username: {}", user.getUserName());
+        }
 
-            log.debug("Username: {}", user.getUserName()); // test
-
-            List<String> realmRoles = jwt.getClaimAsStringList("realm_access.roles");
-            if (realmRoles != null && realmRoles.contains("system")) {
-                user.setSystemRole(true);
-                log.debug("Есть роль 'system'");
-            }
-
+        if(user.isSystemRole()){
+            log.debug("Есть роль 'system'");
         }
 
         log.debug("userUIID: {}", user.getUserUIID());

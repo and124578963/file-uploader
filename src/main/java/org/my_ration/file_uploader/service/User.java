@@ -13,9 +13,5 @@ public class User {
 
     private boolean isSystemRole=false;
 
-    public boolean getIsSystemRole() {
-        return isSystemRole;
-    }
-
 
 }

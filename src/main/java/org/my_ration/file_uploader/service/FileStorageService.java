@@ -90,7 +90,7 @@ public class FileStorageService {
 
         log.debug("CurrentUserStorageSize: {}", userStorageSize);
 
-        if(userStorageSize<maxUserStorageSize-fileSize||user.getIsSystemRole()) {
+        if(userStorageSize<maxUserStorageSize-fileSize||user.isSystemRole()) {
             try (InputStream is = new ByteArrayInputStream(compressedData)) {
                 log.debug("SavePhoto");
                 Files.copy(is, filePath);
