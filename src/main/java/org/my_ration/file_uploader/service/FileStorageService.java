@@ -39,7 +39,7 @@ public class FileStorageService {
     private int targetHeight;
 
     @Value("${allowed.file.maxFileSizeBytes}")
-    private float maxFileSizeBytes;
+    private long maxFileSizeBytes;
 
     @Value("${allowed.user.maxUserStorageSize}")
     private long maxUserStorageSize;
@@ -156,65 +156,55 @@ public class FileStorageService {
 
 
     private InputStream compressImage(MultipartFile file) throws IOException {
-        InputStream inputStream = file.getInputStream();
+        // 1. Читаем файл в память ОДИН раз
+        byte[] originalImageData = file.getBytes();
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(originalImageData));
 
-        BufferedImage image = ImageIO.read(file.getInputStream());
         if (image == null) {
             throw new IllegalArgumentException("Couldn't read the image");
         }
-        int width = image.getWidth();
-        int height = image.getHeight();
 
-        // Если изображение уже меньше или равно целевому размеру — не меняем
-        if (width <= targetWidth && height <= targetHeight && file.getSize()<=maxFileSizeBytes) {
-            return file.getInputStream(); // Возвращаем исходный байт-массив
+        // Проверка, нужно ли вообще сжатие
+        if (image.getWidth() <= targetWidth && image.getHeight() <= targetHeight && originalImageData.length <= maxFileSizeBytes) {
+            return new ByteArrayInputStream(originalImageData);
         }
 
-        if(targetWidth>width){
-            targetWidth=width;
-        }
-        if(targetHeight>height){
-            targetHeight=height;
-        }
+        // 2. Используем локальные переменные для размеров
+        int currentWidth = Math.min(image.getWidth(), this.targetWidth);
+        int currentHeight = Math.min(image.getHeight(), this.targetHeight);
+
         double quality = 1.0;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1).toLowerCase();
 
         while (true) {
-            outputStream.reset(); // очищаем буфер
+            outputStream.reset(); // Очищаем поток вывода перед каждой итерацией
 
-            log.trace("File type {}", file.getContentType());
-            log.trace("File extension {}", extension);
-            log.trace("File targetHeight {}", targetHeight);
-            log.trace("File targetWidth {}", targetWidth);
+            // 3. Всегда используем исходные данные изображения для лучшего качества
+            Thumbnails.of(new ByteArrayInputStream(originalImageData))
+                    .size(currentWidth, currentHeight)
+                    .outputFormat(extension)
+                    .outputQuality(quality)
+                    .toOutputStream(outputStream);
 
-            try {
-                Thumbnails.of(inputStream)
-                        .size(targetWidth, targetHeight)
-                        .outputFormat(extension)
-                        .outputQuality(quality)
-                        .toOutputStream(outputStream);
-            }
-            catch (Exception e){
-                log.error(e);
+            if (outputStream.size() <= maxFileSizeBytes || quality <= 0.1) {
+                break; // Выходим из цикла, если размер подходит или качество слишком низкое
             }
 
-            log.trace("file size: {}", outputStream.size());
-            if (outputStream.size() <= maxFileSizeBytes) {
-                return new ByteArrayInputStream(outputStream.toByteArray());
+            // Уменьшаем качество или размер для следующей итерации
+            if (quality > 0.4) { // Сначала пытаемся снизить качество
+                quality -= 0.1;
+            } else { // Если качество уже низкое, начинаем уменьшать размер
+                currentWidth *= 0.9;
+                currentHeight *= 0.9;
             }
-
-            quality -= 0.1;
-            targetHeight= (int) (targetHeight*0.85);
-            targetWidth= (int) (targetWidth*0.85);
-
-            if (quality < 0.1) {
-                throw new IOException("Couldn't compress the file ");
-            }
-
-            inputStream = new ByteArrayInputStream(outputStream.toByteArray()); // обновляем InputStream
         }
+
+        if (outputStream.size() > maxFileSizeBytes) {
+            throw new IOException("Couldn't compress the file to the target size");
+        }
+
+        return new ByteArrayInputStream(outputStream.toByteArray());
     }
+
 }
