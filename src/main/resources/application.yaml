@@ -32,7 +32,7 @@ file:
 
 allowed:
   file:
-    types: image/png,image/jpeg,image/gif
+    types: image/png,image/jpeg,image/gif,image/webp
     targetWidth: ${FILE_TARGET_WIDTH}
     targetHeight: ${FILE_TARGET_HEIGHT}
     maxFileSizeBytes: ${FILE_MAX_SIZE_BYTES}

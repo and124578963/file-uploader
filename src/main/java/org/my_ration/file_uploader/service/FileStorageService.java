@@ -1,7 +1,9 @@
 package org.my_ration.file_uploader.service;
 
+import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.my_ration.file_uploader.entities.Photo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,13 +19,14 @@ import java.util.UUID;
 import net.coobird.thumbnailator.Thumbnails;
 
 import javax.imageio.ImageIO;
+import javax.imageio.spi.IIORegistry;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 @Service
 @RequiredArgsConstructor
-@Log4j2
+@Slf4j
 public class FileStorageService {
 
     @Value("${file.upload.root-directory}")
@@ -46,6 +49,12 @@ public class FileStorageService {
 
     private final UserService userService;
     private final PhotoService photoService;
+
+    @PostConstruct
+    public void initializeWebPSupport() {
+        IIORegistry registry = IIORegistry.getDefaultInstance();
+        registry.registerServiceProvider(new WebPImageReaderSpi());
+    }
 
     public String storeFile(MultipartFile file, String category) throws IOException {
         // Валидация типа файла
@@ -175,7 +184,7 @@ public class FileStorageService {
 
         double quality = 1.0;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        String extension = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1).toLowerCase();
+
 
         while (true) {
             outputStream.reset(); // Очищаем поток вывода перед каждой итерацией
@@ -183,7 +192,7 @@ public class FileStorageService {
             // 3. Всегда используем исходные данные изображения для лучшего качества
             Thumbnails.of(new ByteArrayInputStream(originalImageData))
                     .size(currentWidth, currentHeight)
-                    .outputFormat(extension)
+                    .outputFormat("jpg")
                     .outputQuality(quality)
                     .toOutputStream(outputStream);
 
@@ -195,8 +204,8 @@ public class FileStorageService {
             if (quality > 0.4) { // Сначала пытаемся снизить качество
                 quality -= 0.1;
             } else { // Если качество уже низкое, начинаем уменьшать размер
-                currentWidth *= 0.9;
-                currentHeight *= 0.9;
+                currentWidth = (int)(currentWidth * 0.9);
+                currentHeight = (int)(currentHeight * 0.9);
             }
         }
 

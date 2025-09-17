@@ -2,8 +2,7 @@
 FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 COPY pom.xml .
-# Кэшируем зависимости
-RUN mvn dependency:go-offline -B -Dmaven.wagon.http.retryHandler.count=3
+
 COPY src ./src
 # Собираем без документации и тестов
 RUN mvn package -DskipTests -Dmaven.javadoc.skip=true -B -q
