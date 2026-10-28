@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.io.IOException;
 
@@ -17,19 +18,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<String> handleTooLarge(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body("file_too_large");
+    }
+
+    @ExceptionHandler(IOException.class)
     public ResponseEntity<String> handleIOException(IOException ex) {
-        log.error("error: ",ex);
-        log.debug("Error Message: {}",ex.getMessage());
-        if (ex.getMessage().equals("file_not_found")){
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
-                    .body("Error processing file: " + ex.getMessage());
-        } else if(ex.getMessage().equals("no_available_storage")){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Error processing file: " + ex.getMessage());
-        }else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing file: " + ex.getMessage());
+        log.error("error: ", ex);
+        String message = ex.getMessage();
+        HttpStatus status;
+        if ("file_not_found".equals(message)) {
+            status = HttpStatus.NOT_ACCEPTABLE;
+        } else if ("no_available_storage".equals(message)) {
+            status = HttpStatus.FORBIDDEN;
+        } else {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
+        return ResponseEntity.status(status).body("Error processing file: " + message);
+    }
+
+    /** Всё остальное, включая Error, которые Spring доставляет обёрнутыми в ServletException. */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleOther(Exception ex) {
+        log.error("error: ", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing file: " + ex.getMessage());
     }
 }

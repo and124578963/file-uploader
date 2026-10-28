@@ -36,6 +36,10 @@ allowed:
     targetWidth: ${FILE_TARGET_WIDTH}
     targetHeight: ${FILE_TARGET_HEIGHT}
     maxFileSizeBytes: ${FILE_MAX_SIZE_BYTES}
+    # Больше — отказ до декодирования: память декодера зависит от пикселей, а не от веса файла.
+    maxPixels: ${FILE_MAX_PIXELS:100000000}
+    # Каталоги внутри root-directory, куда клиентам можно писать.
+    categories: ${FILE_CATEGORIES:recipes,userIngredients}
   user:
     maxUserStorageSize: ${MAX_USER_STORAGE_SIZE}
 
