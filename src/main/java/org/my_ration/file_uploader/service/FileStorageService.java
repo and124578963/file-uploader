@@ -91,7 +91,9 @@ public class FileStorageService {
 
         log.debug("CurrentUserStorageSize: {}", userStorageSize);
 
-        if (userStorageSize < maxUserStorageSize - fileSize || user.isSystemRole()) {
+        // На admin и system лимит не распространяется.
+        boolean unlimited = user.isAdmin() || user.isSystemRole();
+        if (unlimited || userStorageSize + fileSize <= maxUserStorageSize) {
             log.debug("SavePhoto");
             Files.write(filePath, image.data());
 
@@ -103,7 +105,7 @@ public class FileStorageService {
 
             photoService.saveUserPhoto(photo);
         } else {
-            throw new IOException("no_available_storage");
+            throw new StorageQuotaExceededException(userStorageSize, fileSize, maxUserStorageSize);
         }
 
         return filePath.toString();
@@ -154,13 +156,12 @@ public class FileStorageService {
         User user = userService.getUser();
         Path photoPath = Paths.get(filePath);
 
-        if (!Files.exists(photoPath)) {
-            throw new IOException("no_such_path");
-        }
-
         if(user.getUserUIID().equals(photo.getUserUIID())){
+            // Файла может уже не быть на диске — запись всё равно удаляем, иначе она навсегда занимает квоту.
             log.debug("Start delete file by photoPath");
-            Files.delete(photoPath);
+            if (!Files.deleteIfExists(photoPath)) {
+                log.warn("File {} not found on disk, removing DB record only", photoPath);
+            }
             log.debug("Start deletePhotoById");
             photoService.deletePhotoById(photo.getId());
         }else {

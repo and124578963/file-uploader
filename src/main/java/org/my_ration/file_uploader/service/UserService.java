@@ -37,11 +37,12 @@ public class UserService {
 
         user.setSystemRole(authentication.getAuthorities()
                 .stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_system")));
+                .anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_system")));
 
+        // Регистр роли в Keycloak не важен: "admin" и "ADMIN" — одно и то же.
         user.setAdmin(authentication.getAuthorities()
                 .stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
+                .anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_admin")));
 
         if (authentication.getPrincipal() instanceof Jwt) {
             Jwt jwt = (Jwt) authentication.getPrincipal();
@@ -53,7 +54,8 @@ public class UserService {
             log.debug("Есть роль 'system'");
         }
 
-        log.debug("userUIID: {}", user.getUserUIID());
+        log.debug("userUIID: {}, roles: {}, admin: {}", user.getUserUIID(),
+                authentication.getAuthorities(), user.isAdmin());
         return user;
     }
 

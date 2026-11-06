@@ -3,12 +3,11 @@ package org.my_ration.file_uploader.controller;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.my_ration.file_uploader.service.FileStorageService;
+import org.my_ration.file_uploader.service.StorageQuotaExceededException;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
-
-import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class GlobalExceptionHandlerTest {
@@ -48,11 +48,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void storageQuotaIs403() throws Exception {
-        storeThrows(new IOException("no_available_storage"));
+    void storageQuotaIs507WithCode() throws Exception {
+        storeThrows(new StorageQuotaExceededException(5_200_000, 197_361, 5_242_880));
 
-        upload().andExpect(status().isForbidden())
-                .andExpect(content().string("Error processing file: no_available_storage"));
+        upload().andExpect(status().isInsufficientStorage())
+                .andExpect(jsonPath("$.code").value("no_available_storage"))
+                .andExpect(jsonPath("$.usedBytes").value(5_200_000))
+                .andExpect(jsonPath("$.fileSizeBytes").value(197_361))
+                .andExpect(jsonPath("$.limitBytes").value(5_242_880));
     }
 
     @Test
