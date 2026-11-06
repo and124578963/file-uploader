@@ -5,6 +5,8 @@ services:
 
     env_file:
       - .env
+    environment:
+      LOG_DIR: /tmp/logs
     image: and124578963/file-uploader:2025-09-17
     pull_policy: always
     volumes:
